@@ -20,7 +20,7 @@ pip install CelLink
 ```
 
 ## Vignettes
-A tutorial on integrating scRNA-seq and CODEX datasets from HPAP023 is provided. Please check our tutorial website.
+A tutorial on integrating scRNA-seq and CODEX datasets from HPAP023 donor is provided. Please check our tutorial website.
 
 ## Citation
 If you use Cellink in your research, please kindly cite our paper using the following reference:
