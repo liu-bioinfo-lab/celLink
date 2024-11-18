@@ -12,3 +12,8 @@ CelLink uniquely enables cell subtype annotation, correction of mislabelled cell
 
 ## Installation
 Cellink can be installed from PyPI using pip. For best practices, create a new virtual environment before installation. Below, we demonstrate how to set up this environment using conda.
+
+```bash
+conda create -n CelLink python=3.9
+conda activate CelLink
+pip install CelLink
