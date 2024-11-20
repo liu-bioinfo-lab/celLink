@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: cellink-luo
-Version: 0.1.3
+Version: 0.1.4
 Summary: CelLink is an effecient python package for single-cell multi-omics integration, especially for datasets with weak feature linkage and imbalanced cell populations.
 Author-email: Xin Luo <luosanj@umich.edu>
 Project-URL: Homepage, https://github.com/liu-bioinfo-lab/CelLink
@@ -40,11 +40,11 @@ Cellink can be installed from PyPI using pip. For best practices, create a new v
 ```bash
 conda create -n CelLink python=3.9
 conda activate CelLink
-pip install CelLink
+pip install cellink-luo
 ```
 
 ## Vignettes
-A tutorial on integrating scRNA-seq and CODEX datasets from donor HPAP023 is provided. The feature linkage information between coding genes and proteins is stored in [protein_gene_relationship.csv](docs/protein_gene_relationship.csv). Please check our [tutorial website](https://doi.org/10.1101/2024.11.08.622745).
+A tutorial on integrating scRNA-seq and CODEX datasets from donor HPAP023 is provided. The feature linkage information between coding genes and proteins is stored in [protein_gene_relationship.csv](docs/protein_gene_relationship.csv). Please check our [tutorial website](https://cellink.readthedocs.io/en/latest/index.html).
 
 ## Citation
 If you use Cellink in your research, please kindly cite our paper using the following reference:
