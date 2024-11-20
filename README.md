@@ -16,7 +16,7 @@ Cellink can be installed from PyPI using pip. For best practices, create a new v
 ```bash
 conda create -n CelLink python=3.9
 conda activate CelLink
-pip install CelLink
+pip install cellink-luo
 ```
 
 ## Vignettes
