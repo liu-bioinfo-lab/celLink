@@ -20,7 +20,7 @@ pip install cellink-luo
 ```
 
 ## Vignettes
-A tutorial on integrating scRNA-seq and CODEX datasets from donor HPAP023 is provided. The feature linkage information between coding genes and proteins is stored in [protein_gene_relationship.csv](docs/protein_gene_relationship.csv). Please check our [tutorial website](https://doi.org/10.1101/2024.11.08.622745).
+A tutorial on integrating scRNA-seq and CODEX datasets from donor HPAP023 is provided. The feature linkage information between coding genes and proteins is stored in [protein_gene_relationship.csv](docs/protein_gene_relationship.csv). Please check our [tutorial website](https://cellink.readthedocs.io/en/latest/index.html).
 
 ## Citation
 If you use Cellink in your research, please kindly cite our paper using the following reference:
