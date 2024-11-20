@@ -1,9 +1,9 @@
 import numpy as np
 import ot 
 import matplotlib.pyplot as plt
-from utils import drop_low_variability_columns
-from utils import graph_smoothing
-from utils import cdist_correlation
+from .utils import drop_low_variability_columns
+from .utils import graph_smoothing
+from .utils import cdist_correlation
 import anndata as ad
 import scanpy as sc
 import scipy
