@@ -1,5 +1,8 @@
 # CelLink: Integrate single-cell multi-omics data with few linked features and imbalanced cell populations
-![version](https://img.shields.io/badge/version-1.0.0-brightgreen.svg)
+![version](https://img.shields.io/badge/version-0.1.4-brightgreen.svg)
+![Python](https://img.shields.io/badge/Python-3.9-blue.svg)
+![Review](https://views.whatilearened.today/views/github/liu-bioinfo-lab/CelLink.svg)
+
 
 <img src="docs/images/CelLink_logo.png" width="60">
 
