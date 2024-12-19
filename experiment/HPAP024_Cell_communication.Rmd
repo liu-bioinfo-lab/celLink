@@ -1,0 +1,195 @@
+---
+title: "d024_ccc"
+author: "Xin Luo"
+date: "2024-11-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## load the imputed data
+```{r}
+library(rhdf5)
+file_path <- "/Users/luosanj/Desktop/project2/data/HPAP024-AAB-18y-M-H_1_2_2-OCT/i_mat.h5"
+data <- h5read(file_path, "matrix")
+metadata <- read.csv("/Users/luosanj/Desktop/project2/data/HPAP024-AAB-18y-M-H_1_2_2-OCT/i_obs.csv")
+features <- read.csv("/Users/luosanj/Desktop/project2/data/HPAP024-AAB-18y-M-H_1_2_2-OCT/i_var.csv")
+spatial = read.csv("/Users/luosanj/Desktop/project2/data/HPAP024-AAB-18y-M-H_1_2_2-OCT/i_spatial.csv")
+```
+# create the seurat object
+```{r}
+library(Seurat)
+library(Matrix)
+
+sparse_matrix <- Matrix(data, sparse = TRUE)
+# Convert the matrix to a data frame if it's not already
+#expression_matrix <- as.data.frame(data)
+rownames(sparse_matrix) <- features$Unnamed..0
+colnames(sparse_matrix) <- paste("cell", 1:ncol(sparse_matrix), sep = "_")
+
+# Now, assign these cell names to the row names of the metadata dataframe
+rownames(metadata) <- colnames(sparse_matrix)
+
+# Create a Seurat object
+seurat_object <- CreateSeuratObject(
+  counts = sparse_matrix,
+  project = "d024"  
+)
+
+# Adding metadata, ensure rownames of metadata match the colnames of the expression matrix
+seurat_object <- AddMetaData(seurat_object, metadata = metadata)
+
+# If features data contains gene information, set it as features (rownames) of the Seurat object
+rownames(seurat_object) <- features$Unnamed..0  # Adjust 'Unnamed..0' to the column name in features CSV
+
+seurat_object[["RNA"]] <- CreateAssayObject(counts = sparse_matrix)
+```
+
+```{r}
+spatial_factors <- data.frame(
+  ratio = 1,  # Conversion factor from pixels (or other units) to micrometers
+  tol = 5     # Tolerance factor
+)
+
+spatial_coord = spatial[c("X_coord", "Y_coord")]
+
+# build cellchat object
+library(CellChat)
+rownames(data) <- features$Unnamed..0
+
+cellchat <- createCellChat(object = data, meta = metadata, group.by = "cell_type",
+                           datatype = "spatial", coordinates = as.matrix(spatial_coord), spatial.factors = spatial_factors)
+```
+
+```{r}
+CellChatDB <- CellChatDB.human
+CellChatDB_use <- subsetDB(CellChatDB, search = "Secreted Signaling", key = "annotation")
+cellchat@DB <- CellChatDB_use
+```
+
+# pre-processing expression data
+```{r}
+options(future.globals.maxSize = 4000 * 1024^2)
+# subset the expression data of signaling genes for saving computation cost
+cellchat <- subsetData(cellchat) # This step is necessary even if using the whole database
+cellchat <- identifyOverExpressedGenes(cellchat)
+cellchat <- identifyOverExpressedInteractions(cellchat, variable.both = F)
+```
+# Compute the communication probability and infer cellular communication network
+```{r}
+ptm = Sys.time()
+
+cellchat <- computeCommunProb(cellchat, type = "truncatedMean", trim = 0.1,
+                              distance.use = FALSE, interaction.range = 250,
+                              contact.dependent = TRUE, contact.range = 100)
+```
+
+```{r}
+cellchat <- filterCommunication(cellchat, min.cells = 10)
+```
+```{r}
+df.net <- subsetCommunication(cellchat, signaling = c('GCG', 'INSULIN', 'IGF', 'GIPR'))
+```
+
+```{r}
+cellchat <- computeCommunProbPathway(cellchat)
+cellchat <- aggregateNet(cellchat)
+```
+
+```{r}
+saveRDS(cellchat, file = "/Users/luosanj/Desktop/project2/CelLink/cellchat_d024.rds")
+```
+
+```{r}
+saveRDS(filtered_df.net, file = "/Users/luosanj/Desktop/project2/CelLink/cellchat_filtered_lr_ct.rds")
+```
+
+```{r}
+library(tidyr)
+lig <- unique(df.net$ligand)
+rec <- unique(df.net$receptor)
+ligands_seurat <- subset(seurat_object, features = lig)
+
+df.net$receptor <- as.character(df.net$receptor)
+df.net_expanded <- df.net %>%
+  mutate(receptor = strsplit(receptor, ":")) %>%
+  unnest(receptor)
+
+# Now re-identifying the unique receptors
+rec <- unique(df.net_expanded$receptor)
+receptors_seurat <- subset(seurat_object, features = rec)
+
+# Calculate average expression for ligands by cell type
+avg_lig_expr <- AverageExpression(ligands_seurat, group.by = "cell_type", return.seurat = FALSE)
+# Calculate average expression for receptors by cell type
+avg_rec_expr <- AverageExpression(receptors_seurat, group.by = "cell_type", return.seurat = FALSE)
+
+# Extract the receptor names that have expression data
+valid_receptors <- rownames(avg_rec_expr$RNA)
+# Filter df.net_expanded to only include rows where the receptor exists in valid_receptors
+df.net <- df.net_expanded[df.net_expanded$receptor %in% valid_receptors, ]
+df.net <- as.data.frame(df.net) 
+```
+
+# 
+```{r}
+# Ensure the function includes lig_expr and rec_expr as parameters if not done yet
+filter_lig_rec <- function(ligand, receptor, sct, rct) {
+  receptor_subunits <- unlist(strsplit(receptor, ":"))
+  
+  # Get expression levels for ligand
+  ligand_expr <- avg_lig_expr$RNA[ligand, sct]
+  
+  if(ligand_expr < 0.01){
+    return(FALSE)
+  }
+  
+  # Initialize logical vector for receptor results
+  receptor_results <- logical(length(receptor_subunits))
+  
+  for (i in seq_along(receptor_subunits)) {
+    subunit <- receptor_subunits[i]
+    receptor_expr <- avg_rec_expr$RNA[receptor, rct]
+    
+    receptor_results[i] <- receptor_expr
+  }
+  
+  all(receptor_results >= 0.01)
+}
+
+# Modify the apply function to pass the expression matrices
+logical_vector <- apply(df.net, 1, function(x) filter_lig_rec(x["ligand"], x["receptor"], x["source"], x["target"]))
+dfnet_filter <- df.net[logical_vector, ]
+dfnet_filter
+```
+
+```{r}
+dfnet_filter$Interaction_Factor <- factor(dfnet_filter$interaction_name, levels = unique(dfnet_filter$interaction_name))
+dfnet_filter$Source_Target <- factor(paste(dfnet_filter$source, "->", dfnet_filter$target), levels = unique(paste(dfnet_filter$source, "->", dfnet_filter$target)))
+
+
+p <- ggplot(dfnet_filter, aes(x = Interaction_Factor, y = Source_Target, size = I(10), color = prob)) +
+  geom_point(alpha = 0.6) +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(title = "Bubble Plot of Ligand-Receptor Interactions",
+       x = NULL,
+       y = NULL,
+       color = "Probability") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.5),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid = element_blank(),
+        panel.spacing = unit(0.5, "lines")) +
+  scale_x_discrete(expand = c(0.1, 0.1)) +
+  scale_y_discrete(expand = c(0.1, 0.1))
+p
+```
+
+```{r}
+groupSize <- as.numeric(table(cellchat@idents))
+par(mfrow = c(1,2), xpd=TRUE)
+netVisual_circle(cellchat@net$count, vertex.weight = rowSums(cellchat@net$count), weight.scale = T, label.edge= F, title.name = "Number of interactions")
+netVisual_circle(cellchat@net$weight, vertex.weight = rowSums(cellchat@net$weight), weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+```
