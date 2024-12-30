@@ -1,6 +1,6 @@
 # CelLink: integrating single-cell multi-omics data with weak feature linkage and imbalanced cell populations
 [![PyPI](https://img.shields.io/pypi/v/scanpy?logo=PyPI)](https://pypi.org/project/cellink-luo/)
-![Python](https://img.shields.io/badge/Python-3.9-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.9--3.12-blue.svg)
 ![Review](https://views.whatilearened.today/views/github/liu-bioinfo-lab/CelLink.svg)
 [![Docs](https://readthedocs.com/projects/icb-scanpy/badge/?version=latest)](https://cellink.readthedocs.io/en/latest/)
 
